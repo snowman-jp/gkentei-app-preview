@@ -49,16 +49,17 @@ function rankQuestion(question,s,now,seed){
  const due=next!==null&&localDayNumber(next)<=day;
  const overdue=due?Math.max(0,day-localDayNumber(next)):0;
  const unseen=s.totalAttempts===0&&!s.legacyReview;
- const reviewCandidate=s.lastCorrect===false||s.legacyReview||due||s.wrongCount>=2||(age!==null&&age>=14);
- const score=(s.lastCorrect===false?WEIGHTS.lastWrong:0)+(s.legacyReview?WEIGHTS.legacyReview:0)+Math.min(s.wrongCount,WEIGHTS.wrongCap)*WEIGHTS.wrongEach+(due?WEIGHTS.due+Math.min(overdue,WEIGHTS.overdueCap):0)+(age!==null?Math.min(age,WEIGHTS.ageCap)*WEIGHTS.ageEach:0)+(unseen?WEIGHTS.unseen:0);
+ const repeatMistakes=s.wrongCount>=2&&s.correctStreak<2;
+ const reviewCandidate=s.lastCorrect===false||s.legacyReview||due||repeatMistakes||(age!==null&&age>=14&&s.correctStreak<2);
+ const score=(s.lastCorrect===false?WEIGHTS.lastWrong:0)+(s.legacyReview?WEIGHTS.legacyReview:0)+Math.min(s.wrongCount,WEIGHTS.wrongCap)*WEIGHTS.wrongEach/(1+s.correctStreak)+(due?WEIGHTS.due+Math.min(overdue,WEIGHTS.overdueCap):0)+(age!==null?Math.min(age,WEIGHTS.ageCap)*WEIGHTS.ageEach:0)+(unseen?WEIGHTS.unseen:0);
  const recentWrong=s.recentResults.filter(x=>!x).length;
  let reason;
  if(s.lastCorrect===false)reason='前回不正解だったため';
  else if(s.legacyReview)reason='復習対象として保存されているため（回答記録は不明）';
- else if(recentWrong>=2)reason=`直近${s.recentResults.length}回のうち${recentWrong}回不正解のため`;
+ else if(repeatMistakes&&recentWrong>=2)reason=`直近${s.recentResults.length}回のうち${recentWrong}回不正解のため`;
  else if(due)reason=`前回の${s.lastCorrect?'正解':'回答'}から${age}日。復習の目安日を迎えたため`;
- else if(s.wrongCount>=2)reason=`全${s.totalAttempts}回の解答で${s.wrongCount}回不正解のため`;
- else if(age!==null&&age>=14)reason=`最後の回答から${age}日経過したため`;
+ else if(repeatMistakes)reason=`全${s.totalAttempts}回の解答で${s.wrongCount}回不正解のため`;
+ else if(reviewCandidate&&age!==null&&age>=14)reason=`最後の回答から${age}日経過したため`;
  else if(unseen)reason='読み取れる解答記録がないため';
  else if(last===null)reason='回答日時が不明なため、復習候補として補充';
  else reason='次の復習日前ですが、5問をそろえるために補充';
@@ -68,7 +69,7 @@ function recommend(questions,data,now=Date.now()){
  if(!Number.isFinite(now))throw new TypeError('有効な現在時刻が必要です');
  const unique=[...new Map(questions.map(q=>[q.id,q])).values()];const stats=statistics(data,unique.map(q=>q.id));const seed=dayKey(now)+'|'+fingerprint(data);
  const ranked=unique.map(q=>rankQuestion(q,stats[q.id],now,seed)).sort((a,b)=>b.score-a.score||a.tie-b.tie||a.id-b.id);
- const ordered=[...ranked.filter(x=>x.reviewCandidate),...ranked.filter(x=>!x.reviewCandidate)];
+ const ordered=[...ranked.filter(x=>x.reviewCandidate),...ranked.filter(x=>!x.reviewCandidate&&x.unseen),...ranked.filter(x=>!x.reviewCandidate&&!x.unseen)];
  return {items:ordered.slice(0,5),stats,day:dayKey(now),reviewCount:ranked.filter(x=>x.reviewCandidate).length,dueCount:ranked.filter(x=>x.due).length,total:unique.length};
 }
 return Object.freeze({WEIGHTS,INTERVALS,timestamp,dayKey,intervalDays,nextReview,normalize,parse,statistics,fingerprint,rankQuestion,recommend});
