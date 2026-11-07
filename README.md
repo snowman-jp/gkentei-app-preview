@@ -12,3 +12,9 @@
 ローカルで `python -m http.server 8000 --bind 0.0.0.0` を実行し、`http://localhost:8000/audit/` で監査一覧、`http://localhost:8000/level3.html` で修正後アプリを確認できます。外部への公開操作は不要です。
 
 再検証：`python scripts/check-questions.py`、サーバー起動中に `node scripts/check-browser.cjs`（PlaywrightとChromiumが必要。`CHROMIUM_PATH`、`AUDIT_URL` で変更可能）。集計を再作成する `scripts/build-audit.py` は記載した基準コミットの問題データから生成するため、後続の編集を行う場合は先に差分を保存してください。
+
+## iPhone向けHTTPS監査プレビュー
+
+https://gkentei-question-audit-preview.waxennoodle1.chatgpt.site
+
+監査専用の限定公開サイトです。iPhoneのSafariで開き、求められた場合は同じChatGPTアカウントでログインしてください。正式版やGitHubのmainは変更していません。[公開記録](audit/DEPLOYMENT.md) を参照してください。
