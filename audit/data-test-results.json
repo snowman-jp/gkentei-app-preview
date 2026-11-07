@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "checks": {
+    "records": 400,
+    "choicePermutations": 9600,
+    "changedFields": 64,
+    "detailedLessons": 210
+  },
+  "limits": "構造・正解位置・選択肢と誤答解説の対応を検証。自然言語の技術的正誤・公式シラバスとの一致を証明するテストではない。"
+}

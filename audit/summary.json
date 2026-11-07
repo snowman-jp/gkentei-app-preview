@@ -1,0 +1,28 @@
+{
+  "baseCommit": "cc86fd5580b2bcfebc9fda3dc936d91ac253993b",
+  "branch": "audit/question-quality-20261107",
+  "uniqueQuestionIds": 100,
+  "dataRecords": 400,
+  "checkedRecords": 400,
+  "questionVariants": 116,
+  "affectedIds": 45,
+  "affectedRecords": 138,
+  "autoFixedIds": 16,
+  "autoFixedRecords": 51,
+  "autoFixedFields": 64,
+  "reviewIds": 33,
+  "reviewRecords": 97,
+  "reviewFindings": 76,
+  "categories": {
+    "AI基礎・歴史": 10,
+    "機械学習": 10,
+    "深層学習・学習技術": 10,
+    "モデル構造・画像": 10,
+    "自然言語・生成AI": 10,
+    "生成モデル・強化学習": 10,
+    "数理・統計": 10,
+    "AI社会実装": 10,
+    "法律・倫理": 10,
+    "AI応用・評価": 10
+  }
+}
