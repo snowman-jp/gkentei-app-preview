@@ -1,6 +1,6 @@
 /* G検定プレビュー専用: 本人確認後の手動クラウド同期。デフォルト無通信・無送信。 */
 (()=>{'use strict';
-const URL='https://kuduxlkmuvongfdqyjoc.supabase.co';
+const API_URL='https://kuduxlkmuvongfdqyjoc.supabase.co';
 const PUBLIC_KEY='sb_publishable_a2M9GVPbhf7xaTOnI3hH8Q_kXOKzIzy';
 const OPT_IN='gkentei-preview-cloud-opt-in-v1';
 const SESSION='gkentei-preview-cloud-session-v1';
@@ -10,7 +10,7 @@ const status=(t,error=false)=>{const el=$c('cloudStatus');if(el){el.textContent=
 const consent=()=>localStorage.getItem(OPT_IN)==='yes';
 const headers=(token)=>({'apikey':PUBLIC_KEY,'Content-Type':'application/json',...(token?{'Authorization':'Bearer '+token}:{})});
 async function call(path,{method='GET',body,token,extra={}}={}){
- const response=await fetch(URL+path,{method,headers:{...headers(token),...extra},...(body!==undefined?{body:JSON.stringify(body)}:{})});
+ const response=await fetch(API_URL+path,{method,headers:{...headers(token),...extra},...(body!==undefined?{body:JSON.stringify(body)}:{})});
  if(!response.ok){let message;try{const e=await response.json();message=e.msg||e.message||e.error_description||e.error}catch{}throw new Error(message||'HTTP '+response.status)}
  if(response.status===204)return null;const text=await response.text();return text?JSON.parse(text):null;
 }
@@ -36,7 +36,7 @@ async function approved(t){
  if(!Array.isArray(rows)||rows.length===0)throw new Error('このアカウントはまだ同期許可リストに登録されていません。管理画面で本人を許可してからお試しください。');
 }
 async function eventUUID(row,index){
- const input=String(row.id)+'|'+String(row.at)+'|'+String(!!row.ok)+'|'+index;
+ const input=String(row.id)+'|'+String(row.at)+'|'+String(!!row.ok);
  const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(input)));
  const b=digest.slice(0,16);b[6]=(b[6]&15)|80;b[8]=(b[8]&63)|128;
  const hex=[...b].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -44,7 +44,7 @@ async function eventUUID(row,index){
 }
 function makeBackup(){
  const blob=new Blob([JSON.stringify({exported_at:new Date().toISOString(),local_storage_key:KEY,data},null,2)],{type:'application/json'});
- const anchor=document.createElement('a');anchor.href=URL.createObjectURL(blob);anchor.download='gkentei-preview-backup-'+new Date().toISOString().slice(0,10)+'.json';anchor.click();setTimeout(()=>URL.revokeObjectURL(anchor.href),1000);
+ const anchor=document.createElement('a');anchor.href=globalThis.URL.createObjectURL(blob);anchor.download='gkentei-preview-backup-'+new Date().toISOString().slice(0,10)+'.json';anchor.click();setTimeout(()=>globalThis.URL.revokeObjectURL(anchor.href),1000);
 }
 async function getAllEvents(t){
  let output=[];let offset=0;
@@ -70,7 +70,7 @@ async function manualSync(){
   const outgoing=[];
   for(let i=0;i<local.length;i++){
    const r=local[i];if(!r||!Number.isFinite(Number(r.id))||typeof r.ok!=='boolean'||!Number.isFinite(Date.parse(r.at)))continue;
-   const eid=await eventUUID(r,i);
+   const eid=await eventUUID(r);
    if(!known.has(eid))outgoing.push({event_id:eid,user_id:user.id,question_id:String(r.id),is_correct:r.ok,answered_at:r.at});
   }
   if(!window.confirm('端末内の履歴 '+local.length+'件のうち、未登録の約'+outgoing.length+'件をクラウドへ送信します。既存の端末履歴は残し、他の端末で保存済みの記録も取り込みます。実行しますか？')){status('同期をキャンセルしました。');return}
@@ -84,7 +84,7 @@ async function manualSync(){
   // 同じ解答を識別できる限り保ち、端末内イベントを最優先して保持する
   for(let i=0;i<local.length;i++){
    const r=local[i];if(!r||typeof r.ok!=='boolean'||!Number.isFinite(Date.parse(r.at)))continue;
-   const eid=await eventUUID(r,i);existing.add(eid);merged.push(r);
+   const eid=await eventUUID(r);existing.add(eid);merged.push(r);
   }
   for(const r of latest){
    if(existing.has(r.event_id))continue;
@@ -122,7 +122,7 @@ function init(){
   const email=$c('cloudEmail').value.trim();
   if(!email||!/^\S+@\S+\.\S+$/.test(email))return status('有効なメールアドレスを入力してください。',true);
   try{
-   await call('/auth/v1/otp',{method:'POST',body:{email,create_user:false,options:{email_redirect_to:location.origin+location.pathname}}});
+   await call('/auth/v1/otp?redirect_to='+encodeURIComponent(location.origin+location.pathname),{method:'POST',body:{email,create_user:false}});
    status('登録済みメール宛にログイン案内をリクエストしました。届かない場合は、本人用アカウントの招待・リダイレクトURL設定を確認してください。');
   }catch(e){status('メール送信に失敗しました：'+e.message,true)}
  });
