@@ -131,7 +131,7 @@ function init(){
  $c('cloudVerifyCode').addEventListener('click',async()=>{
   const email=$c('cloudEmail').value.trim();
   const code=$c('cloudCode').value.trim();
-  if(!/^\\S+@\\S+\\.\\S+$/.test(email)||!/^\\d{6}$/.test(code)){
+  if(!/^\S+@\S+\.\S+$/.test(email)||!/^\d{6}$/.test(code)){
    status('メールアドレスとメールに届いた6桁コードを確認してください。',true);return;
   }
   const button=$c('cloudVerifyCode');button.disabled=true;
