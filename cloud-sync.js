@@ -6,6 +6,7 @@ const OPT_IN='gkentei-preview-cloud-opt-in-v1';
 const SESSION='gkentei-preview-cloud-session-v1';
 const $c=id=>document.getElementById(id);
 let session=null;
+let recoveryMode=false;
 const status=(t,error=false)=>{const el=$c('cloudStatus');if(el){el.textContent=t;el.style.color=error?'#b42318':'#43556d'}};
 const consent=()=>localStorage.getItem(OPT_IN)==='yes';
 const headers=(token)=>({'apikey':PUBLIC_KEY,'Content-Type':'application/json',...(token?{'Authorization':'Bearer '+token}:{})});
@@ -18,9 +19,11 @@ function saveSession(s){session=s; if(s)sessionStorage.setItem(SESSION,JSON.stri
 function render(){
  const active=consent(),signed=!!session?.access_token;
  $c('cloudConsent').checked=active;
- $c('cloudLogin').hidden=signed;
- $c('cloudLoggedIn').hidden=!signed;
- $c('cloudSyncButton').disabled=!active||!signed;
+ $c('cloudLogin').hidden=signed||recoveryMode;
+ $c('cloudRecovery').hidden=!recoveryMode;
+ $c('cloudLoggedIn').hidden=!signed||recoveryMode;
+
+ $c('cloudSyncButton').disabled=!active||!signed||recoveryMode;
  $c('cloudEmailLabel').textContent=signed?'認証済み（このブラウザ内のセッション）':'';
 }
 async function token(){
@@ -106,11 +109,27 @@ function init(){
  try{session=JSON.parse(sessionStorage.getItem(SESSION)||'null')}catch{session=null}
  // メールリンクから戻ってきた時のトークン。許可前にクラウド履歴を自動取得しない。
  const hash=new URLSearchParams(location.hash.replace(/^#/,''));const access=hash.get('access_token'),refresh=hash.get('refresh_token');
+ recoveryMode=hash.get('type')==='recovery' && !!access;
  if(access){
   saveSession({access_token:access,refresh_token:refresh,expires_at:Math.floor(Date.now()/1000)+Number(hash.get('expires_in')||3600)});
   history.replaceState(null,'',location.pathname+location.search);
-  status('ログインできました。クラウド同期はまだ自動実行されません。');
+  status(recoveryMode?'パスワード再設定用の認証を受け取りました。新しいパスワードを入力してください。':'ログインできました。クラウド同期はまだ自動実行されません。');
  }
+ $c('cloudSetNewPassword').addEventListener('click',async()=>{
+  if(!recoveryMode||!session?.access_token){status('パスワード再設定用の有効なリンクから開いてください。',true);return;}
+  const pass=$c('cloudNewPassword').value,confirmPass=$c('cloudConfirmPassword').value;
+  if(pass.length<12||pass.length>72){status('パスワードは12～72文字で設定してください。',true);return;}
+  if(pass!==confirmPass){status('確認用パスワードが一致しません。',true);return;}
+  const btn=$c('cloudSetNewPassword');btn.disabled=true;
+  try{
+    await call('/auth/v1/user',{method:'PUT',token:await token(),body:{password:pass}});
+    $c('cloudNewPassword').value='';$c('cloudConfirmPassword').value='';
+    recoveryMode=false;
+    saveSession(null);
+    status('パスワードを設定しました。iPhoneの「パスワード」アプリに保存してから、メール＋パスワードでログインしてください。同期はオフのままです。');
+  }catch(e){status('パスワードを設定できませんでした。リンクの期限切れなどが考えられます：'+e.message,true)}
+  finally{btn.disabled=false;render()}
+ });
  $c('cloudConsent').addEventListener('change',e=>{
   if(e.target.checked){
    if(!confirm('問題ID・正誤・解答日時を、本人が「同期する」を押した場合だけSupabaseへ保存します。通常利用では送信しません。同意しますか？')){e.target.checked=false;return}
