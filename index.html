@@ -58,7 +58,7 @@ body.quiz-active main{padding-top:28px}
 <button type="button" id="cloudSetNewPassword" class="primary">新しいパスワードを設定</button>
 </div>
 <div id="cloudLoggedIn" hidden><p id="cloudEmailLabel" class="muted"></p><button type="button" class="secondary" id="cloudSignOut">ログアウト</button></div>
-<button type="button" class="secondary" id="cloudBackup">端末内の履歴をJSONでバックアップ</button>
+<button type="button" class="secondary" id="cloudBackup">端末内の履歴をJSONでバックアップ</button><label for="cloudImport" class="muted" style="display:block;margin:12px 0 4px">別の検証版からバックアップを取り込む（クラウド送信なし）</label><input type="file" id="cloudImport" accept=".json,application/json" style="max-width:100%;margin:4px 0 12px">
 <button type="button" class="primary" id="cloudSyncButton" disabled>確認して手動で同期する</button>
 <p id="cloudStatus" class="muted" role="status" aria-live="polite">クラウド同期はオフです。端末内だけに保存しています。</p>
 <p class="muted">※ 同期をオフにしても既に送信した履歴は自動で消えません。利用時には本人IDの許可登録と認証用リダイレクトURL設定が必要です。</p>
