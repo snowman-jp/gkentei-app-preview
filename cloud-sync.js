@@ -206,6 +206,18 @@ function init(){
   }catch(err){status('バックアップの取り込みを中止しました：'+err.message,true)}
   finally{input.value='';}
  });
+ $c('cloudProbeButton').addEventListener('click',async()=>{
+  const button=$c('cloudProbeButton');button.disabled=true;
+  try{
+    const t=await token();
+    status('送信APIの認証付き診断を実行しています。履歴は送信しません。');
+    const r=await fetch('/api/answer-sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:'[]',cache:'no-store'});
+    const response=await r.text();
+    if(r.status===400)status('診断成功：認証付きPOSTがAPIに到達しました（HTTP 400：空データのため保存拒否）。学習履歴は送信していません。');
+    else status('診断結果：HTTP '+r.status+' / '+response.slice(0,180)+'。履歴は送信していません。',true);
+  }catch(e){status('診断で通信エラー：'+e.message+'。履歴は送信していません。',true)}
+  finally{button.disabled=false;}
+ });
  $c('cloudSyncButton').addEventListener('click',manualSync);
  render();
 }
