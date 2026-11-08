@@ -62,25 +62,34 @@ async function getAllEvents(t){
 async function manualSync(){
  if(!consent())return status('先にクラウド同期に同意してください。',true);
  const btn=$c('cloudSyncButton');btn.disabled=true;
+ let phase='開始時の確認';
  try{
   if(!Array.isArray(data.history))throw new Error('端末内の学習履歴を読み取れません。');
-  const t=await token();await approved(t);
+  phase='認証トークンの確認';status('同期処理：'+phase);
+  const t=await token();
+  phase='本人の同期許可の確認';status('同期処理：'+phase);await approved(t);
   const local=data.history.map(r=>({...r}));
+  phase='クラウド履歴の読み取り';status('同期処理：'+phase);
   const remote=await getAllEvents(t);
   const known=new Set(remote.map(x=>x.event_id));
+  phase='ログインユーザーの確認';status('同期処理：'+phase);
   const user=await call('/auth/v1/user',{token:t});
   if(!user?.id)throw new Error('認証ユーザーを確認できません。');
   const outgoing=[];
+  phase='送信対象の重複確認';status('同期処理：'+phase);
   for(let i=0;i<local.length;i++){
    const r=local[i];if(!r||!Number.isFinite(Number(r.id))||typeof r.ok!=='boolean'||!Number.isFinite(Date.parse(r.at)))continue;
    const eid=await eventUUID(r);
    if(!known.has(eid))outgoing.push({event_id:eid,user_id:user.id,question_id:String(r.id),is_correct:r.ok,answered_at:r.at});
   }
   if(!window.confirm('端末内の履歴 '+local.length+'件のうち、未登録の約'+outgoing.length+'件をクラウドへ送信します。既存の端末履歴は残し、他の端末で保存済みの記録も取り込みます。実行しますか？')){status('同期をキャンセルしました。');return}
+  phase='バックアップ作成';status('同期処理：'+phase);
   makeBackup();
+  phase='解答履歴の送信';status('同期処理：'+phase);
   for(let i=0;i<outgoing.length;i+=200){
    await call('/rest/v1/answer_events?on_conflict=event_id',{method:'POST',body:outgoing.slice(i,i+200),token:t,extra:{Prefer:'resolution=ignore-duplicates,return=minimal'}});
   }
+  phase='保存結果の読み取り';status('同期処理：'+phase);
   const latest=await getAllEvents(t);
   const existing=new Set();
   const merged=[];
@@ -99,10 +108,11 @@ async function manualSync(){
   const wrong=new Set();
   for(const r of merged){if(r.ok)wrong.delete(r.id);else wrong.add(r.id)}
   const next={...data,history:merged,wrong:[...wrong]};
+  phase='端末内履歴への反映';status('同期処理：'+phase);
   localStorage.setItem(KEY,JSON.stringify(next));
   data=next;if(typeof dashboard==='function')dashboard();
   status('同期完了。サーバー '+latest.length+'件、端末内 '+merged.length+'件。JSONバックアップもダウンロードしました。');
- }catch(e){status('同期できませんでした：'+e.message+'。端末内の学習履歴は保持されています。',true)}
+ }catch(e){status('同期できませんでした（'+phase+'）：'+e.message+'。端末内の履歴は保持されています。バックアップを削除しないでください。',true)}
  finally{render()}
 }
 function init(){
