@@ -137,6 +137,17 @@ function init(){
   }else{localStorage.removeItem(OPT_IN);status('クラウド同期をオフにしました。既に送信したデータは自動削除されません。')}
   render();
  });
+ $c('cloudRequestReset').addEventListener('click',async()=>{
+  const email=$c('cloudEmail').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){status('登録済みメールアドレスを入力してください。',true);return;}
+  const button=$c('cloudRequestReset');button.disabled=true;
+  try{
+    const redirect=location.origin+location.pathname;
+    await call('/auth/v1/recover?redirect_to='+encodeURIComponent(redirect),{method:'POST',body:{email}});
+    status('再設定用のメールをリクエストしました。届いた最新のリンクをSafariで開いてください。');
+  }catch(e){status('再設定メールを送信できませんでした：'+e.message,true)}
+  finally{button.disabled=false;}
+ });
  $c('cloudPasswordLogin').addEventListener('click',async()=>{
   const email=$c('cloudEmail').value.trim();
   const password=$c('cloudPassword').value;
