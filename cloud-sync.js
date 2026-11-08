@@ -83,8 +83,9 @@ async function manualSync(){
    if(!known.has(eid))outgoing.push({event_id:eid,user_id:user.id,question_id:String(r.id),is_correct:r.ok,answered_at:r.at});
   }
   if(!window.confirm('端末内の履歴 '+local.length+'件のうち、未登録の約'+outgoing.length+'件をクラウドへ送信します。既存の端末履歴は残し、他の端末で保存済みの記録も取り込みます。実行しますか？')){status('同期をキャンセルしました。');return}
-  phase='バックアップ作成';status('同期処理：'+phase);
-  makeBackup();
+  // iOS Safariでダウンロード直後のPOSTが中断される可能性があるため、
+  // 同期処理中の自動ダウンロードは禁止。ユーザーは事前の手動JSONバックアップを保持する。
+  phase='解答履歴の送信準備';status('同期処理：'+phase);
   // POSTは同一オリジンの検証版API経由。RLSはSupabase側で引き続き適用する。
   phase='解答履歴の送信';status('同期処理：'+phase);
   for(let i=0;i<outgoing.length;i+=100){
@@ -113,7 +114,7 @@ async function manualSync(){
   phase='端末内履歴への反映';status('同期処理：'+phase);
   localStorage.setItem(KEY,JSON.stringify(next));
   data=next;if(typeof dashboard==='function')dashboard();
-  status('同期完了。サーバー '+latest.length+'件、端末内 '+merged.length+'件。JSONバックアップもダウンロードしました。');
+  status('同期完了。サーバー '+latest.length+'件、端末内 '+merged.length+'件。事前に保存したJSONバックアップを保管してください。');
  }catch(e){status('同期できませんでした（'+phase+'）：'+e.message+'。端末内の履歴は保持されています。バックアップを削除しないでください。',true)}
  finally{render()}
 }
