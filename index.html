@@ -50,6 +50,13 @@ body.quiz-active main{padding-top:28px}
 <button type="button" id="cloudPasswordLogin" class="secondary">メールとパスワードでログイン</button>
 <p class="muted">登録済み本人アカウント専用です。この画面から新規登録やパスワード再設定は行いません。パスワードが分からない場合はSupabaseの認証管理画面で確認してください。ログインするだけでは解答履歴は送信されません。</p>
 </div>
+<div id="cloudRecovery" hidden style="border:2px solid #2563eb;border-radius:14px;padding:16px;margin:10px 0;background:#f0f6ff">
+<h3 style="margin:0 0 12px">パスワード再設定</h3>
+<p class="muted">再設定用リンクから開いた場合だけ利用できます。12文字以上の新しいパスワードを設定してください。ChatGPTには送らないでください。</p>
+<label for="cloudNewPassword">新しいパスワード</label><input id="cloudNewPassword" type="password" autocomplete="new-password" minlength="12" style="display:block;width:100%;padding:13px;margin:8px 0;border:1px solid #b5bfd2;border-radius:10px">
+<label for="cloudConfirmPassword">確認用にもう一度入力</label><input id="cloudConfirmPassword" type="password" autocomplete="new-password" minlength="12" style="display:block;width:100%;padding:13px;margin:8px 0;border:1px solid #b5bfd2;border-radius:10px">
+<button type="button" id="cloudSetNewPassword" class="primary">新しいパスワードを設定</button>
+</div>
 <div id="cloudLoggedIn" hidden><p id="cloudEmailLabel" class="muted"></p><button type="button" class="secondary" id="cloudSignOut">ログアウト</button></div>
 <button type="button" class="secondary" id="cloudBackup">端末内の履歴をJSONでバックアップ</button>
 <button type="button" class="primary" id="cloudSyncButton" disabled>確認して手動で同期する</button>
