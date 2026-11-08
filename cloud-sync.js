@@ -110,6 +110,7 @@ function init(){
  // メールリンクから戻ってきた時のトークン。許可前にクラウド履歴を自動取得しない。
  const hash=new URLSearchParams(location.hash.replace(/^#/,''));const access=hash.get('access_token'),refresh=hash.get('refresh_token');
  recoveryMode=hash.get('type')==='recovery' && !!access;
+ if(recoveryMode)$c('cloudDetails').open=true;
  if(access){
   saveSession({access_token:access,refresh_token:refresh,expires_at:Math.floor(Date.now()/1000)+Number(hash.get('expires_in')||3600)});
   history.replaceState(null,'',location.pathname+location.search);
