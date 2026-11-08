@@ -175,6 +175,35 @@ function init(){
  });
  $c('cloudSignOut').addEventListener('click',async()=>{const t=session?.access_token;saveSession(null);if(t){try{await call('/auth/v1/logout',{method:'POST',token:t})}catch(_){}}status('ログアウトしました。端末の学習履歴は残っています。')});
  $c('cloudBackup').addEventListener('click',()=>{makeBackup();status('学習履歴のバックアップをダウンロードしました。')});
+ $c('cloudImport').addEventListener('change',async(e)=>{
+  const input=e.target, file=input.files?.[0];
+  if(!file)return;
+  try{
+    if(file.size>3*1024*1024)throw new Error('3MBを超えるバックアップには対応していません。');
+    const parsed=JSON.parse(await file.text());
+    if(parsed?.local_storage_key!==KEY||!parsed?.data||!Array.isArray(parsed.data.history)){
+      throw new Error('この検証版のJSONバックアップではありません。');
+    }
+    const rows=parsed.data.history;
+    if(rows.length>10000||!rows.every(r=>r&&Number.isInteger(r.id)&&r.id>=1&&r.id<=100&&typeof r.ok==='boolean'&&Number.isFinite(Date.parse(r.at)))){
+      throw new Error('バックアップの解答履歴の形式を確認できません。');
+    }
+    if(!Array.isArray(data.history)||!Array.isArray(data.wrong))throw new Error('現在の学習履歴を確認できません。');
+    const ids=new Set(data.history.map(r=>String(r.id)+'|'+String(r.ok)+'|'+String(r.at)));
+    const fresh=rows.filter(r=>!ids.has(String(r.id)+'|'+String(r.ok)+'|'+String(r.at)));
+    if(!confirm('バックアップ '+rows.length+'件から、新規の履歴 '+fresh.length+'件をこの端末に追加します。クラウド送信はしません。既存履歴は残します。実行しますか？'))return;
+    makeBackup();
+    const merged=[...data.history,...fresh.map(r=>({id:r.id,ok:r.ok,at:r.at}))].sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
+    const wrong=new Set();
+    for(const r of merged){if(r.ok)wrong.delete(r.id);else wrong.add(r.id)}
+    const next={...data,history:merged,wrong:[...wrong],sets:Math.max(Number(data.sets)||0,Number(parsed.data.sets)||0)};
+    localStorage.setItem(KEY,JSON.stringify(next));
+    data=next;
+    if(typeof dashboard==='function')dashboard();
+    status('JSONバックアップから'+fresh.length+'件を端末に追加しました。クラウドには送信していません。');
+  }catch(err){status('バックアップの取り込みを中止しました：'+err.message,true)}
+  finally{input.value='';}
+ });
  $c('cloudSyncButton').addEventListener('click',manualSync);
  render();
 }
