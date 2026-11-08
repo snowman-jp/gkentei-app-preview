@@ -85,11 +85,11 @@ async function manualSync(){
   if(!window.confirm('端末内の履歴 '+local.length+'件のうち、未登録の約'+outgoing.length+'件をクラウドへ送信します。既存の端末履歴は残し、他の端末で保存済みの記録も取り込みます。実行しますか？')){status('同期をキャンセルしました。');return}
   phase='バックアップ作成';status('同期処理：'+phase);
   makeBackup();
-  // SafariのCORS preflightでPreferヘッダーが許可されない場合があるため、通常INSERTを使う。
-  // 同じIDが競合した場合はDBが409で拒否し、履歴は改変せず次回の再取得で整合を確認する。
+  // POSTは同一オリジンの検証版API経由。RLSはSupabase側で引き続き適用する。
   phase='解答履歴の送信';status('同期処理：'+phase);
   for(let i=0;i<outgoing.length;i+=100){
-   await call('/rest/v1/answer_events',{method:'POST',body:outgoing.slice(i,i+100),token:t});
+   const response=await fetch('/api/answer-sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify(outgoing.slice(i,i+100)),cache:'no-store'});
+   if(!response.ok){let details;try{details=await response.json()}catch{}throw new Error((details?.error||'Upload failed')+' (HTTP '+response.status+')');}
   }
   phase='保存結果の読み取り';status('同期処理：'+phase);
   const latest=await getAllEvents(t);
