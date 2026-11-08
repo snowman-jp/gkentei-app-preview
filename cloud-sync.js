@@ -123,8 +123,26 @@ function init(){
   if(!email||!/^\S+@\S+\.\S+$/.test(email))return status('有効なメールアドレスを入力してください。',true);
   try{
    await call('/auth/v1/otp?redirect_to='+encodeURIComponent(location.origin+location.pathname),{method:'POST',body:{email,create_user:false}});
-   status('登録済みメール宛にログイン案内をリクエストしました。届かない場合は、本人用アカウントの招待・リダイレクトURL設定を確認してください。');
+   status('登録済みメール宛に認証メールをリクエストしました。6桁コードが届いたら、下に入力してください。メールにコードがない場合は、Supabaseのメールテンプレート設定が必要です。');
   }catch(e){status('メール送信に失敗しました：'+e.message,true)}
+ });
+
+ // iPhoneのGmailとSafariを跨がずにログインするための6桁メールOTP。
+ $c('cloudVerifyCode').addEventListener('click',async()=>{
+  const email=$c('cloudEmail').value.trim();
+  const code=$c('cloudCode').value.trim();
+  if(!/^\\S+@\\S+\\.\\S+$/.test(email)||!/^\\d{6}$/.test(code)){
+   status('メールアドレスとメールに届いた6桁コードを確認してください。',true);return;
+  }
+  const button=$c('cloudVerifyCode');button.disabled=true;
+  try{
+   const result=await call('/auth/v1/verify',{method:'POST',body:{type:'email',email,token:code}});
+   if(!result?.access_token||!result?.refresh_token)throw new Error('認証結果からセッションを取得できません。');
+   saveSession({...result,expires_at:Math.floor(Date.now()/1000)+(result.expires_in||3600)});
+   $c('cloudCode').value='';
+   status('メール認証に成功しました。同期はオフのままです。');
+  }catch(e){status('コードでのログインに失敗しました：'+e.message,true)}
+  finally{button.disabled=false}
  });
  $c('cloudSignOut').addEventListener('click',()=>{saveSession(null);status('このブラウザからログアウトしました。端末の学習履歴は残っています。')});
  $c('cloudBackup').addEventListener('click',()=>{makeBackup();status('学習履歴のバックアップをダウンロードしました。')});
